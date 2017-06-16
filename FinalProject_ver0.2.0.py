@@ -250,10 +250,9 @@ class Figure(Sprite):
             self.chance() # changjin: restart game
         self.game.canvas.move(self.image, self.x, self.y)
         if self.game.canvas.coords(self.image)[1] <= 300:   ## when rabbit reaches the half of screen, all objects go down
-            self.game.canvas.move(ALL, 0, 20)
-            if self.game.canvas.coords(self.image)[1] >= 313:    ## score increaes 10 points every time screen moves
-                self.game.point += 10
-                self.game.canvas.itemconfig(self.game.score, text=self.game.point)
+            self.game.canvas.move(ALL, 0, 20)   
+            self.game.point += 10  ## score increaes 10 points every time screen moves
+            self.game.canvas.itemconfig(self.game.score, text=self.game.point)
             self.game.canvas.move(self.game.background, 0, -20)
             self.game.canvas.move(self.game.TITLE, 0, -20)
             self.game.canvas.move(self.game.RABBIT, 0, -20)
