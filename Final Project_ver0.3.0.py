@@ -43,6 +43,7 @@ class Game:
         self.RIGHT = self.canvas.create_image(500, 585, anchor='nw', image=self.right)
         self.space = PhotoImage(file="space.gif")
         self.SPACE = self.canvas.create_image(553, 588, anchor='nw', image=self.space)
+        self.escape = self.canvas.create_text(590, 640, text="Exit game: Esc", font=("Helvetica", 10, "bold"))
         # score and record
         self.point = 0  # score
         self.highest_point = 0    # highest score player gets
@@ -74,7 +75,7 @@ class Coords:
 
 
 # Function used for class
-# Check if x coordinates of rabbit are in the range of positon of platform
+# Check if x coordinates of rabbit are in the range of position of platform
 def within_x(co1, co2):
     if (co2.x1 < co1.x1 < co2.x2) \
             or (co2.x1 < co1.x2 < co2.x2):
@@ -109,15 +110,16 @@ class Sprite:
         self.game = game
         self.coordinates = None
 
-    def move(self):
+    def move(self):     # move method: main running method
         pass
 
-    def coords(self):
+    def coords(self):   # coords method: return coordinate of sprites
         return self.coordinates
 
 
 # Platform class
 # Platformtype: normal, jumping, shifting, fragile
+# all platform have 100 width, 10 height
 class Platform(Sprite):
     def __init__(self, game, photo_image, x, y, width, height, platformtype):
         Sprite.__init__(self, game)
@@ -136,12 +138,12 @@ class ShiftingPlatform(Platform):
         self.width = width
         self.height = height
 
-    def coords(self):  # get the coordinate of shifting block every time
-        xy = self.game.canvas.coords(self.image)
-        self.coordinates.x1 = xy[0]
-        self.coordinates.y1 = xy[1]
-        self.coordinates.x2 = xy[0] + self.width
-        self.coordinates.y2 = xy[1] + self.height
+    def coords(self):  # get the coordinate of shifting platform every time
+        pos = self.game.canvas.coords(self.image)
+        self.coordinates.x1 = pos[0]
+        self.coordinates.y1 = pos[1]
+        self.coordinates.x2 = pos[0] + self.width
+        self.coordinates.y2 = pos[1] + self.height
         return self.coordinates
 
     def move(self):
@@ -164,32 +166,33 @@ class Figure(Sprite):
                             PhotoImage(file="figure4_fix.gif")]  # picture for left movement: normal, jumping
         self.image = game.canvas.create_image(40, 463, image=self.images_left[0], anchor="nw")  # Start Point
         self.message = game.canvas.create_text(250, 300, text="Start!", font=("Helvetica", 20, "bold"),
-                                               fill='blue')
+                                               fill='blue')    # Start message when game starts
         self.x = 0  # movement
         self.y = 0
-        self.current_image = 0
+        self.current_image = 0     # variable used to control animation
         self.current_image_add = 1
-        self.jump_count = 0
-        self.side_count = 0
+        self.jump_count = 0       # variable used to fall when rabbit reach the highest height
         self.last_time = time.time()
         self.coordinates = Coords()  # Find the coordinate of figure when moving
         game.canvas.bind_all("<KeyPress>", self.keymove)
 
-    def keymove(self, event):  # keys for moving and jumping rabbit
-        if event.keysym == "Left":
+    def keymove(self, event):  # method for moving and jumping rabbit using keyboard
+        if event.keysym == "Left":     # go left
             self.x = -4
-            self.game.canvas.delete(self.message)
-        elif event.keysym == "Right":
+            self.game.canvas.delete(self.message)    # game starts right after player press keys in start message
+        elif event.keysym == "Right":     # go right
             self.x = 4
-            self.game.canvas.delete(self.message)
-        elif event.keysym == "space":
+            self.game.canvas.delete(self.message)     # game starts right after player press keys in start message
+        elif event.keysym == "space":     # jumping
             if self.y == 0:
                 self.y = -10
                 self.jump_count = 0
-                self.game.canvas.delete(self.message)
+                self.game.canvas.delete(self.message)      # game starts right after player press keys in start message
+        elif event.keysym == "Escape":     # exit the game if player presses esc key
+            self.game.tk.destroy()
 
-    def animate(self):  # animation part: change picture of rabbit when moving at every 0.1 sec
-        if self.x != 0 and self.y == 0:
+    def animate(self):  # method for animation: change picture of rabbit when it moves or jumps
+        if self.x != 0 and self.y == 0:      # when rabbit moves to right or left, static picture changes to picture for running
             if time.time() - self.last_time > 0.1:
                 self.last_time = time.time()
                 self.current_image += self.current_image_add
@@ -198,17 +201,17 @@ class Figure(Sprite):
                 if self.current_image <= 0:
                     self.current_image_add = 1
         if self.x < 0:
-            if self.y != 0:  # when rabbit jumps, a picture for jumping is only used.
+            if self.y != 0:  # when rabbit jumps and goes left, a picture for left jumping is only used.
                 self.game.canvas.itemconfig(self.image, image=self.images_left[1])
             else:
                 self.game.canvas.itemconfig(self.image, image=self.images_left[self.current_image])
         elif self.x > 0:
-            if self.y != 0:
+            if self.y != 0:   # when rabbit jumps and goes left, a picture for right jumping is only used.
                 self.game.canvas.itemconfig(self.image, image=self.images_right[1])
             else:
                 self.game.canvas.itemconfig(self.image, image=self.images_right[self.current_image])
 
-    def coords(self):
+    def coords(self):     # method for getting the current coordinate of rabbit
         pos = self.game.canvas.coords(self.image)
         self.coordinates.x1 = pos[0]
         self.coordinates.y1 = pos[1]
@@ -216,7 +219,7 @@ class Figure(Sprite):
         self.coordinates.y2 = pos[1] + 47
         return self.coordinates
 
-    def move(self):  # Main movement in every loop
+    def move(self):  # Main playing method in every loop
         self.animate()
         if self.y < 0:  # control jumping: when rabbit jumps, jump_count increases to 20.
             self.jump_count += 1
@@ -224,42 +227,42 @@ class Figure(Sprite):
                 self.y = 5
         if self.y > 0:  # when rabbit reach the maximum height(count 20), jump_count decreases until it falls on the platform
             self.jump_count -= 1
-        co = self.coords()  # current coordinate of rabbit
-        falling = True
-        if self.x > 0 and co.x2 >= 450:  # stop rabbit when rabbit cross the right edge.
+        co = self.coords()  # call coords method
+        falling = True    # when rabbit falls, falling variable is True
+        if self.x > 0 and co.x2 >= 450:  # stop rabbit when rabbit reaches the right edge.
             self.x = 0
-        elif self.x < 0 and co.x1 <= 0:  # stop rabbit when rabbit cross the left edge.
+        elif self.x < 0 and co.x1 <= 0:  # stop rabbit when rabbit reaches the left edge.
             self.x = 0
         for sprite in self.game.sprites:  # control movement of rabbit
             if sprite == self:  # sprite passes when it is rabbit.
                 continue
-            sprite_co = sprite.coords()  # coordinate of platform
-            if sprite_co.y2 > 650 or sprite_co.y2 < 0:
-                if sprite_co.y2 > 650:
+            sprite_co = sprite.coords()  # call coords method of platform to get the coordinate of platform
+            if sprite_co.y2 > 650 or sprite_co.y2 < 0:      # If a platform is not on the current screen, loop continues. It increases the speed
+                if sprite_co.y2 > 650:    # If a platform is below the screen as rabbit goes up, delete the platform from sprite list
                     del self.game.sprites[self.game.sprites.index(sprite)]
                 continue
-            if self.y > 0 and collided_bottom(co, sprite_co):
+            if self.y > 0 and collided_bottom(co, sprite_co):     # when rabbit is on the platform, it halts
                 self.y = sprite_co.y1 - co.y2
                 if self.y < 0:
                     self.y = 0
             if falling and self.y == 0 and co.y2 < self.game.canvas_height and collided_bottom(co, sprite_co) \
                     and (co.x1 >= sprite_co.x1 or co.x2 <= sprite_co.x2):
-                falling = False  # When there is any platform below rabbit, it falls until it reaches the platform. (falling -> False)
+                falling = False  # After checking if rabbit is on the platform, falling variable turns to False
                 self.jump_count = 0
-                if sprite.platformtype == "Jumping":
+                if sprite.platformtype == "Jumping":    # If rabbit is on the jumping platform, make rabbit jump
                     self.y = -20
-                elif sprite.platformtype == "Fragile":
+                elif sprite.platformtype == "Fragile":   # If rabbit is on the Fragile platform, make it disappear and rabbit fall
                     self.y = -10
                     self.game.canvas.delete(sprite.image)
                     falling = True
         if falling and self.y == 0 and co.y2 < self.game.canvas_height:  # When there is no platform below rabbit, it falls until it reaches the ground
             self.y = 5
-        if co.y2 >= self.game.canvas_height:  # When rabbit reaches the ground, game stops and 'game over pop up'
+        if co.y2 >= self.game.canvas_height:  # When rabbit reaches the ground, game stops and go to chance method
             self.y = 0
             self.x = 0
             self.chance()
-        self.game.canvas.move(self.image, self.x, self.y)
-        if self.game.canvas.coords(self.image)[1] <= 300:  # when rabbit reaches the half of screen, all objects go down
+        self.game.canvas.move(self.image, self.x, self.y)    # return to start position when game restarts
+        if self.game.canvas.coords(self.image)[1] <= 300:  # when rabbit reaches the half of screen, screen goes down for 20 pix and all objects goes up 20 pix.
             self.game.canvas.move(ALL, 0, 20)
             self.game.point += 10  # score increaes 10 points every time screen moves
             self.game.canvas.itemconfig(self.game.score, text=self.game.point)
@@ -277,42 +280,43 @@ class Figure(Sprite):
             self.game.canvas.move(self.game.record, 0, -20)
             self.game.canvas.move(self.game.gameover, 0, -20)
             self.game.canvas.move(self.game.max, 0, -20)
-            for i in range(len(self.game.sprites)):  # change coordinate of objects when screen moves
+            self.game.canvas.move(self.game.escape, 0, -20)
+            for i in range(len(self.game.sprites)):  # change the coordinate of objects when screen moves
                 if self.game.sprites[i] == self:
                     continue
                 self.game.canvas.move(self.game.sprites[i], 0, -20)
-                sprites_co = self.game.sprites[i].coords()
-                sprites_co.y1 += 20
-                sprites_co.y2 += 20
+                sprite_change_co = self.game.sprites[i].coords()
+                sprite_change_co.y1 += 20
+                sprite_change_co.y2 += 20
             r = random.randint(1, 10)
             if time.time() - self.last_time > 0.2:  # new platform occurs from above when screen moves in constant interval
-                if r <= 5:
+                if r <= 5:     # normal platform appears by 50%
                     platform_new = Platform(g, PhotoImage(file="platform1.gif"), random.randint(0, 340),
                                             self.game.next_y, 100, 10, "Normal")
                     self.game.sprites.append(platform_new)
-                elif 6 <= r <= 7:
+                elif 6 <= r <= 7:   # shifting platform appears by 20%
                     platform_new = Platform(g, PhotoImage(file="platform2.gif"), random.randint(0, 340),
                                             self.game.next_y, 100, 10, "Jumping")
                     self.game.sprites.append(platform_new)
-                elif 8 <= r <= 9:
+                elif 8 <= r <= 9:    # jumping platform appears by 20%
                     platform_new = ShiftingPlatform(g, PhotoImage(file="platform3.gif"), random.randint(0, 340),
                                                     self.game.next_y, 100, 10, "Shifting")
                     self.game.sprites.append(platform_new)
-                else:
+                else:     # fragile platform appears by 10%
                     platform_new = Platform(g, PhotoImage(file="platform4.gif"), random.randint(0, 340),
                                             self.game.next_y, 100, 10, "Fragile")
                     self.game.sprites.append(platform_new)
-                self.game.next_y -= random.randint(40, 60)
-        if self.game.point >= self.game.highest_point:
+                self.game.next_y -= random.randint(40, 60)     # randomly locate x-coordinate of next platforms
+        if self.game.point >= self.game.highest_point:     # renew the highest score if player gets more higher score than previous
             self.game.canvas.delete(self.game.record)
             self.game.highest_point = self.game.point
             self.game.record = self.game.canvas.create_text(550, 317, text=self.game.highest_point,
                                                             font=("Helvetica", 15, "bold"))
 
-    def chance(self):
+    def chance(self):     # method for restart game after game over
         self.game.canvas.itemconfig(self.game.gameover, state=NORMAL)
         self.game.running = False
-        self.game.canvas.bind_all('<KeyPress-Return>', self.restart)
+        self.game.canvas.bind_all('<KeyPress-Return>', self.restart)      # press enter when you want to regame
 
     def restart(self, event):
         if self.game.running == False and self.game.canvas.coords(self.image)[1] + 47 >= self.game.canvas_height:
@@ -352,6 +356,7 @@ def initial_setting(g):
 
     sf = Figure(g)
     g.sprites.append(sf)
+
 
 
 g = Game()
